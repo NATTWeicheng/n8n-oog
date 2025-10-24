@@ -36,17 +36,72 @@ router.post('/gmail/reply-with-attachments', async (req, res) => {
       }
     }
 
+    // Use your actual Chrome profile path
+    // Windows: C:/Users/YourUsername/AppData/Local/Google/Chrome/User Data
+    // Mac: ~/Library/Application Support/Google/Chrome
+    // Linux: ~/.config/google-chrome
     const userDataDir = path.resolve('./pw-gmail-profile');
+    
     context = await chromium.launchPersistentContext(userDataDir, {
       headless: false,
       channel: 'chrome',
       viewport: null,
-      args: ['--start-maximized'],
+      args: [
+        '--start-maximized',
+        '--disable-blink-features=AutomationControlled', // Hide automation
+        '--disable-dev-shm-usage',
+        '--no-sandbox'
+      ],
+      // These help bypass automation detection
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     });
 
-    const page = await context.newPage();
-    console.log(`Opening email thread: ${threadId}`);
+    // Get existing page instead of creating new one
+    const page = context.pages()[0];
     
+    // Navigate to Gmail
+    console.log('Navigating to Gmail...');
+    await page.goto('https://mail.google.com/mail/u/0/#all', { 
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
+    
+    // Check if user needs to log in
+    console.log('Checking login status...');
+    await page.waitForTimeout(2000);
+    
+    const currentUrl = page.url();
+    console.log(`Current URL: ${currentUrl}`);
+    
+    // Check if we're on a login/workspace page
+    if (currentUrl.includes('accounts.google.com') || 
+        currentUrl.includes('workspace.google.com') ||
+        currentUrl.includes('signin')) {
+      console.log('⚠️  User is not logged in. Waiting for manual login...');
+      console.log('Please log in to Gmail in the browser window.');
+      
+      // Wait for user to complete login and reach Gmail inbox
+      // We'll check for the Gmail compose button which indicates successful login
+      await page.waitForURL('**/mail.google.com/mail/**', { 
+        timeout: 300000 // 5 minutes for user to log in
+      });
+      
+      // Additional wait to ensure Gmail UI is fully loaded
+      await page.waitForTimeout(3000);
+      console.log('✅ User logged in successfully!');
+    } else {
+      console.log('✅ User already logged in');
+    }
+    
+    // Verify we're on Gmail by checking for common Gmail elements
+    try {
+      await page.waitForSelector('div[role="navigation"]', { timeout: 10000 });
+      console.log('Gmail interface confirmed');
+    } catch (error) {
+      throw new Error('Failed to load Gmail interface. Please ensure you are logged in.');
+    }
+
+    console.log(`Opening email thread: ${threadId}`);
     await page.goto(`https://mail.google.com/mail/u/0/#all/${threadId}`, { 
       waitUntil: 'domcontentloaded' 
     });
