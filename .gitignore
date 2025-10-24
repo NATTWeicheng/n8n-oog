@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# environment variables
+.env
+.env.*
+
+pw-gmail-profile
+# build / output
+dist/
+build/
+coverage/
+.cache/
+tmp/
+temp/
+
+# editors / IDE
+.vscode/
+.idea/
+
+# package locks (optional)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# misc
+*.pma
+*.db
