@@ -157,12 +157,14 @@ router.post('/gmail/reply-with-attachments', async (req, res) => {
     await page.waitForTimeout(500);
     console.log('Existing recipient removed');
     
-    // Hold backspace to clear remaining recipients
-    await page.keyboard.down('Backspace');
-    await page.waitForTimeout(3500);
-    await page.keyboard.up('Backspace');
+    // Press backspace repeatedly (simulate holding)
+    console.log('Removing remaining recipients...');
+    for (let i = 0; i < 50; i++) { // 50 presses should be more than enough
+      await page.keyboard.press('Backspace');
+      await page.waitForTimeout(50); // 50ms between presses = ~1 second total
+    }
     await page.waitForTimeout(500);
-    console.log('All existing recipients removed'); 
+    console.log('All existing recipients removed');
 
     // Add new recipients to To field
     console.log('Adding To recipients...');
